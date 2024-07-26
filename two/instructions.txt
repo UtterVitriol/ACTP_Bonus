@@ -1,0 +1,25 @@
+Create a Python server.
+
+Your server must:
+
+(2pts) 1. communicate via IPv4 and IPv6 using sys.args to filter between these two command-line connection options
+(2pts) 2. communicate via TCP and UDP using sys.args to filter between these two command-line connection options
+Note: your server must communicate in proper endianness.
+3. if the client data is prefixed with the 4-byte string 'ACTP,' the server will:
+    (1 pt) - simply echo back to the client all data that follows the prefix
+    (1 pt) - else, the server will send back the error message 'wrong class'
+4. if the client data is prefixed with a 1-byte '9', the server will:
+    (1 pt) - send back a '0' and end the connection
+    (1 pt) - else, the server will send back a '1' 
+5. if the client data is prefixed with a 4-byte integer with the value of '42,' the server will:
+    (1 pt) - XOR each of the remaining 8-byte values that follow the prefix with 42 
+    (1 pt) - return, as a 4-byte hex value, the two's complement of the sum of the xor'ed values
+    (1 pt) - else, the server will send back the error message 'wrong number'
+6. if the client data is prefixed with the 4-byte string 'LIST,' the server will:
+    (1 pt) - split the remaining data string into a list of 4-byte values
+    (1 pt) - sort the values alpha-numerically ascending (abc...xyz012...789)
+    (1 pt) - convert the list into a pickle object and send the pickled object back to the client
+    (1 pt) - else, the server will send back the error message 'no dill'
+
+This problem will be hand-graded by the instructor.
+

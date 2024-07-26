@@ -1,0 +1,16 @@
+Create a Python script that will (hint: be sure to do these steps in order, or your final result will be incorrect)
+(1 pt) 1. call a function that will open the provided file "seek_file.txt" (student share) for reading and writing and will return a handle to the file
+Note: this handle will used for the remaining functions.
+(1 pt) 2. call a function that will seek to the 27th occurrence of the word "the" and change it to "it"
+(1 pt) 3. call a function that will replace all occurrences of the word "seek" with "the"
+(1 pt) 4. call a function that will append "ACTP_4_th3_W1N!" (ignore the quotes) in the 42nd index of the file   
+(1 pt) 5. call a function that will count and return the number of occurrences of the word "the"
+(1 pt) 6. call a function that will reverse any word that is composed ONLY of digits according to the command-line value specified by the user with 'h' == hex or 'b' == byte (all other options should result in failure) See examples for step 6 below:
+          - the word '1234' would be reversed to '4321' if the user provided 'b'
+          - the word '1234' would be reversed to '3412' if the user provided 'h'
+(1 pt) 7. call a function that will return, as an integer, the final sum of all digit-only words within the file - i.e. if only the words '100' and '200' exist in the file, your function would return the integer 300
+(1 pt) 8. call a function that will remove all occurrences of any of the following characters !@_#$%^&* and all /r /n and white-space characters from the file (the result should be a single string of characters)
+(1 pt) 9. call a function that will return the hash of the file contents according to the command-line value specified by the user with 1 == sha1, 5 == md5, and 256 == sha256 (all other options should result in failure)
+
+This problem will be hand-graded by the instructor.
+
