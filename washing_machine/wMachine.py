@@ -15,38 +15,33 @@ class LoadType(Enum):
     DOUBLE = 5
 
 
+class DoorState(Enum):
+    OPEN = 1
+    CLOSED = 2
+    UNLOCKED = 3
+    LOCKED = 4
+
+
 class MyDoor():
     def __init__(self) -> None:
-        self.ajar = False
-        self.locked = False
+        self.ajar = DoorState.CLOSED
+        self.locked = DoorState.UNLOCKED
 
     def open(self) -> bool:
-        if not self.ajar:
-            self.ajar = True
-            return True
-        else:
-            return False
+        if self.ajar is DoorState.CLOSED:
+            self.ajar = DoorState.OPEN
 
     def close(self) -> bool:
-        if self.ajar:
-            self.ajar = False
-            return True
-        else:
-            return False
+        if self.ajar is DoorState.OPEN:
+            self.ajar = DoorState.CLOSED
 
     def lock(self) -> bool:
-        if not self.locked:
-            self.locked = True
-            return True
-        else:
-            return False
+        if self.locked is DoorState.UNLOCKED:
+            self.locked = DoorState.LOCKED
 
     def unlock(self) -> bool:
-        if self.locked:
-            self.locked = False
-            return True
-        else:
-            return False
+        if self.locked is DoorState.LOCKED:
+            self.locked = DoorState.UNLOCKED
 
 
 class WashCycle():
@@ -82,66 +77,58 @@ class MyTimer():
 
 class MyLoad():
     def __init__(self, fill, wash, rinse, spin):
-        self.price = 2.00
+        self.price = 2.0
         self.runTime = 0
+        self._calcFill(fill)
+        self._calcWash(wash)
+        self._calcRinse(rinse)
+        self._calcSpin(spin)
 
         return
 
-    def fill(self, mode):
-        """
-        cycles can range from light->normal->heavy with light receiving zero monetary discount, but heavy requiring an additional $0.50 to begin a run
-        total run time changes include: light -=2min, regular == 5min, heavy +=3min
-        """
+    def _calcFill(self, mode):
         if mode == LoadType.LIGHT:
             self.runTime += 3
         elif mode == LoadType.REGULAR:
             self.runTime += 5
         elif mode == LoadType.HEAVY:
             self.runTime += 8
+            self.price += .5
         else:
             return False
 
         return True
 
-    def wash(self, mode):
-        """
-        cycles can range from light->normal->heavy with light receiving zero monetary discount, but heavy requiring an additional $1.50 to begin a run
-        total run time changes include: light -=5min, regular == 10min, heavy +=7min
-        """
+    def _calcWash(self, mode):
         if mode == LoadType.LIGHT:
             self.runTime += 5
         elif mode == LoadType.REGULAR:
             self.runTime += 10
         elif mode == LoadType.HEAVY:
             self.runTime += 17
+            self.price += 1.5
         else:
             return False
 
         return True
 
-    def rinse(self, mode):
-        """
-        cycles can range from single->double with double requiring an additional $1.25 to begin a run
-        total run time changes include: single == 10min, double +=5min
-        """
+    def _calcRinse(self, mode):
         if mode == LoadType.SINGLE:
             self.runTime += 10
         elif mode == LoadType.DOUBLE:
             self.runTime += 15
+            self.price += 1.25
         else:
             return False
 
         return True
 
-    def spin(self, mode):
-        """
-        cycles can range from single->double with double requiring an additional $0.75 to begin run
-        total run time changes include: single == 5min, double +=6min
-        """
+    def _calcSpin(self, mode):
         if mode == LoadType.SINGLE:
             self.runTime += 5
         elif mode == LoadType.DOUBLE:
             self.runTime += 11
+            self.price += .75
         else:
             return False
 
@@ -149,11 +136,6 @@ class MyLoad():
 
 
 class MyWashingMachine():
-    """
-    must require a minimum of $2.00 to operate a standard 30-minute run (includes the regular fill, regular wash, single-rinse, and single-spin cycles)
-    can take an additional $0.50-$4.00 in $0.25 intervals to increase cycles
-    """
-
     CycleTypes = {
         "Light": LoadType.LIGHT,
         "Regular": LoadType.REGULAR,
@@ -201,6 +183,42 @@ class MyWashingMachine():
                 print(f"{choice} is an invalid option")
                 continue
 
+    def _lrh(self):
+        while (1):
+            print(
+                "Light: L",
+                "Regular: R",
+                "Heavy: H",
+                sep="\n"
+            )
+
+            choice = input("Choice: ").lower()
+            if choice == 'l':
+                return LoadType.LIGHT
+            elif choice == 'r':
+                return LoadType.REGULAR
+            elif choice == 'h':
+                return LoadType.HEAVY
+            else:
+                print(f"{choice} is an invalid option")
+
+    def _sd(self):
+        while (1):
+            print(
+                "Single: S",
+                "Double: D",
+                sep="\n"
+            )
+
+            choice = input("Choice: ").lower()
+
+            if choice == 's':
+                return LoadType.SINGLE
+            elif choice == 'd':
+                return LoadType.DOUBLE
+            else:
+                print(f"{choice} is an invalid option")
+
     def _cycles(self):
         while (1):
             print(
@@ -219,41 +237,51 @@ class MyWashingMachine():
             choice = input("Choice: ").lower()
 
             if choice == 'f':
-                choice
+                self.cycles['fill'] = self._lrh()
             elif choice == 'w':
-                choice
+                self.cycles['wash'] = self._lrh()
             elif choice == 'r':
-                choice
+                self.cycles['rinse'] = self._sd()
             elif choice == 's':
-                choice
+                self.cycles['spin'] = self._sd()
             elif choice == 'b':
                 break
             else:
                 print(f"{choice} is an invalid option")
+
+    def _run(self):
+        load = MyLoad(*self.cycles.values())
+        if self.money < load.price:
+            print("Not enough monies")
+            return
 
     def _main(self):
         while (1):
             print(
                 "--------------------",
                 "Washing Washer",
+                f"Door: {self.door.ajar.name} | {self.door.locked.name}",
                 f"Money: {locale.currency(self.money, grouping=True)}",
                 "--------------------",
-                "Cycles: W",
-                "Money: A",
-                "Run: S",
-                "Exit: H",
+                "Door: D",
+                "Cycles: C",
+                "Money: M",
+                "Run: r",
+                "Exit: E",
                 sep='\n'
             )
 
             choice = input("Choice: ").lower()
 
-            if choice == 'w':
+            if choice == 'd':
+                print("door")
+            elif choice == 'c':
                 self._cycles()
-            elif choice == 'a':
+            elif choice == 'm':
                 self._money()
-            elif choice == 's':
+            elif choice == 'r':
                 print("Running")
-            elif choice == 'h':
+            elif choice == 'e':
                 break
             else:
                 print(f"{choice} is an invalid option")
