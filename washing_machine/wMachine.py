@@ -67,6 +67,38 @@ class MyLoad():
         self.rinseTime = 10
         self.spinTime = 5
 
+    def runFill(self):
+        now = int(time.time())
+        cur = now
+        while cur != now + self.fillTime:
+            time.sleep(1)
+            cur = int(time.time())
+            yield cur
+
+    def runWash(self):
+        now = int(time.time())
+        cur = now
+        while cur != now + self.washTime:
+            time.sleep(1)
+            cur = int(time.time())
+            yield cur
+
+    def runRinse(self):
+        now = int(time.time())
+        cur = now
+        while cur != now + self.rinseTime:
+            time.sleep(1)
+            cur = int(time.time())
+            yield cur
+
+    def runSpin(self):
+        now = int(time.time())
+        cur = now
+        while cur != now + self.spinTime:
+            time.sleep(1)
+            cur = int(time.time())
+            yield cur
+
     def calcFill(self, mode: LoadType) -> None:
         self.fill = mode
         if mode == LoadType.LIGHT:
@@ -164,18 +196,13 @@ class MyMainMenu(tk.Frame):
             self.err.update("Not enough money")
             return
 
-        # self.startb.disable()
-        self.startb.switch()
-
-        self.money.update_money(self.load.price)
+        self.money.update_money(0.0)
         self.money.update_cost(0)
 
         # self.door.disable()
         self.startFunc()
 
     def stop(self):
-        self.startb.switch()
-        self.startb.enable()
         self.cycles.update()
         self.door.enable()
 
@@ -202,7 +229,7 @@ class MyRunningMenu(tk.Frame):
             self, "Spin", load.spin.name.lower(), [
                 "single", "double"])
 
-        self.progress = Progress(self)
+        # self.progress = Progress(self)
 
     def fillCostRunning(self, cycles: list):
         self.load.calc_cost_running(*cycles)
@@ -219,6 +246,9 @@ class MyRunningMenu(tk.Frame):
     def fillCostRunning(self, cycles: list):
         self.load.calc_cost_running(*cycles)
         self.fill.update_cost(self.load.price)
+
+    def addProgress(self, title):
+        self.progress = Progress(self, title)
 
     def updateFill(self):
         self
@@ -251,15 +281,38 @@ class MyWashingMachine(tk.Tk):
     def start_load(self):
         self.main.pack_forget()
         self.running = MyRunningMenu(self.load)
-        self.running.money.set(float(self.main.money.moneySBox.get()))
         self.running.pack()
         self.thr = threading.Thread(target=self.run_load, daemon=True)
         self.thr.start()
 
     def run_load(self):
-        for x in range(10):
-            time.sleep(1)
-            self.running.progress.bar.step(100/10)
+        self.running.addProgress("Fill")
+        for minute in self.load.runFill():
+            self.running.progress.bar.step(100/self.load.fillTime)
+        self.running.progress.destroy()
+
+        self.running.fill.disable()
+
+        self.running.addProgress("Wash")
+        for minute in self.load.runWash():
+            self.running.progress.bar.step(100/self.load.washTime)
+        self.running.progress.destroy()
+
+        self.running.wash.disable()
+
+        self.running.addProgress("Rinse")
+        for minute in self.load.runRinse():
+            self.running.progress.bar.step(100/self.load.washTime)
+        self.running.progress.destroy()
+
+        self.running.rinse.disable()
+
+        self.running.addProgress("Spin")
+        for minute in self.load.runSpin():
+            self.running.progress.bar.step(100/self.load.spinTime)
+        self.running.progress.destroy()
+
+        self.running.spin.disable()
 
         self.running.destroy()
         self.main.pack()

@@ -156,9 +156,9 @@ class MainMoney(tk.LabelFrame):
         self.costEntry.insert(0, f"{cost:.2f}")
         self.costEntry.config(state=tk.DISABLED)
 
-    def update_money(self, price: float):
+    def update_money(self, money: float):
         self.moneyStr.set(
-            f"{float(self.moneyStr.get()) - price:.2f}"
+            f"{money:.2f}"
         )
 
 
@@ -267,10 +267,14 @@ class Cycle(tk.LabelFrame):
         self.costEntry.insert(0, f"{cost:.2f}")
         self.costEntry.config(state=tk.DISABLED)
 
+    def disable(self):
+        self.cycle_fill_drop.config(state=tk.DISABLED)
+        self.cycleButton.config(state=tk.DISABLED)
+
 
 class Progress(tk.LabelFrame):
-    def __init__(self, master):
-        super().__init__(master, text="Progress")
+    def __init__(self, master, title):
+        super().__init__(master, text=title)
         self.pack(fill=BOTH, padx=20, pady=10)
         self.bar = ttk.Progressbar(self)
         self.bar.pack(fill=BOTH, padx=10, pady=5)
