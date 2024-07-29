@@ -2,9 +2,11 @@ import time
 import locale
 import threading
 from enum import Enum
+from wMachineGui import MainMoney, Money, Door, Cycles, Cycle, StartButton, Error, Progress
+import tkinter as tk
 
 locale.setlocale(locale.LC_ALL, '')
-# TODO: Exceptions
+# TODO: Make gui only responsible for gui state
 
 
 class LoadType(Enum):
@@ -13,35 +15,6 @@ class LoadType(Enum):
     HEAVY = 3
     SINGLE = 4
     DOUBLE = 5
-
-
-class DoorState(Enum):
-    OPEN = 1
-    CLOSED = 2
-    UNLOCKED = 3
-    LOCKED = 4
-
-
-class MyDoor():
-    def __init__(self) -> None:
-        self.ajar = DoorState.CLOSED
-        self.locked = DoorState.UNLOCKED
-
-    def open(self) -> bool:
-        if self.ajar is DoorState.CLOSED:
-            self.ajar = DoorState.OPEN
-
-    def close(self) -> bool:
-        if self.ajar is DoorState.OPEN:
-            self.ajar = DoorState.CLOSED
-
-    def lock(self) -> bool:
-        if self.locked is DoorState.UNLOCKED:
-            self.locked = DoorState.LOCKED
-
-    def unlock(self) -> bool:
-        if self.locked is DoorState.LOCKED:
-            self.locked = DoorState.UNLOCKED
 
 
 class WashCycle():
@@ -76,223 +49,229 @@ class MyTimer():
 
 
 class MyLoad():
-    def __init__(self, fill, wash, rinse, spin):
-        self.price = 2.0
-        self.runTime = 0
-        self._calcFill(fill)
-        self._calcWash(wash)
-        self._calcRinse(rinse)
-        self._calcSpin(spin)
-
-        return
-
-    def _calcFill(self, mode):
-        if mode == LoadType.LIGHT:
-            self.runTime += 3
-        elif mode == LoadType.REGULAR:
-            self.runTime += 5
-        elif mode == LoadType.HEAVY:
-            self.runTime += 8
-            self.price += .5
-        else:
-            return False
-
-        return True
-
-    def _calcWash(self, mode):
-        if mode == LoadType.LIGHT:
-            self.runTime += 5
-        elif mode == LoadType.REGULAR:
-            self.runTime += 10
-        elif mode == LoadType.HEAVY:
-            self.runTime += 17
-            self.price += 1.5
-        else:
-            return False
-
-        return True
-
-    def _calcRinse(self, mode):
-        if mode == LoadType.SINGLE:
-            self.runTime += 10
-        elif mode == LoadType.DOUBLE:
-            self.runTime += 15
-            self.price += 1.25
-        else:
-            return False
-
-        return True
-
-    def _calcSpin(self, mode):
-        if mode == LoadType.SINGLE:
-            self.runTime += 5
-        elif mode == LoadType.DOUBLE:
-            self.runTime += 11
-            self.price += .75
-        else:
-            return False
-
-        return True
-
-
-class MyWashingMachine():
-    CycleTypes = {
-        "Light": LoadType.LIGHT,
-        "Regular": LoadType.REGULAR,
-        "Heavy": LoadType.HEAVY,
-        "Single": LoadType.SINGLE,
-        "Double": LoadType.DOUBLE
-    }
-
     def __init__(self):
-        self.door = MyDoor()
-        self.timer = MyTimer()
-        self.on = False
-        self.money = 0
-        self.cycles = {
-            "fill": LoadType.REGULAR,
-            "wash": LoadType.REGULAR,
-            "rinse": LoadType.SINGLE,
-            "spin": LoadType.SINGLE,
-        }
+        self.price = 2.0
 
-    def _money(self):
-        while (1):
-            print(
-                "--------------------",
-                f"Money: {locale.currency(self.money, grouping=True)}",
-                "--------------------",
-                "Insert Quarter: I",
-                "Refund: R",
-                "Back: B",
-                sep="\n"
-            )
+        self.fill = LoadType.REGULAR
+        self.wash = LoadType.REGULAR
+        self.rinse = LoadType.SINGLE
+        self.spin = LoadType.SINGLE
 
-            choice = input("Choice: ").lower()
+        self.fillUpdated = False
+        self.washUpdated = False
+        self.rinseUpdate = False
+        self.spinUpdated = False
 
-            if choice == 'i':
-                if self.money == 4.0:
-                    print("Max monies")
-                    continue
-                self.money += .25
-            elif choice == 'r':
-                self.money = 0
-            elif choice == 'b':
-                break
-            else:
-                print(f"{choice} is an invalid option")
-                continue
+        self.fillTime = 5
+        self.washTime = 10
+        self.rinseTime = 10
+        self.spinTime = 5
 
-    def _lrh(self):
-        while (1):
-            print(
-                "Light: L",
-                "Regular: R",
-                "Heavy: H",
-                sep="\n"
-            )
+    def calcFill(self, mode: LoadType) -> None:
+        self.fill = mode
+        if mode == LoadType.LIGHT:
+            self.fillTime = 3
+        elif mode == LoadType.REGULAR:
+            self.fillTime = 5
+        elif mode == LoadType.HEAVY:
+            self.fillTime = 8
+            self.price += .5
 
-            choice = input("Choice: ").lower()
-            if choice == 'l':
-                return LoadType.LIGHT
-            elif choice == 'r':
-                return LoadType.REGULAR
-            elif choice == 'h':
-                return LoadType.HEAVY
-            else:
-                print(f"{choice} is an invalid option")
+    def calcWash(self, mode: LoadType) -> None:
+        self.wash = mode
+        if mode == LoadType.LIGHT:
+            self.washTime = 5
+        elif mode == LoadType.REGULAR:
+            self.washTime = 10
+        elif mode == LoadType.HEAVY:
+            self.washTime = 17
+            self.price += 1.5
 
-    def _sd(self):
-        while (1):
-            print(
-                "Single: S",
-                "Double: D",
-                sep="\n"
-            )
+    def calcRinse(self, mode: LoadType) -> None:
+        self.rinse = mode
+        if mode == LoadType.SINGLE:
+            self.rinseTime = 10
+        elif mode == LoadType.DOUBLE:
+            self.rinseTime = 15
+            self.price += 1.25
 
-            choice = input("Choice: ").lower()
+    def calcSpin(self, mode: LoadType) -> None:
+        self.spin = mode
+        if mode == LoadType.SINGLE:
+            self.spinTime = 5
+        elif mode == LoadType.DOUBLE:
+            self.spinTime = 11
+            self.price += .75
 
-            if choice == 's':
-                return LoadType.SINGLE
-            elif choice == 'd':
-                return LoadType.DOUBLE
-            else:
-                print(f"{choice} is an invalid option")
+    # def reset_time(self) -> None:
+    #     self.fillTime = 5
+    #     self.washTime = 10
+    #     self.rinseTime = 10
+    #     self.spinTime = 5
 
-    def _cycles(self):
-        while (1):
-            print(
-                "--------------------",
-                f"Fill: {self.cycles['fill'].name} | Wash: {self.cycles['wash'].name} ",
-                f"Rinse: {self.cycles['rinse'].name} | Spin: {self.cycles['spin'].name}",
-                "--------------------",
-                "Fill: F",
-                "Wash: W",
-                "Rinse: R",
-                "Spin: S",
-                "Back: B",
-                sep="\n"
-            )
+    def calc_cost_start(self, fill: str, wash: str, rinse: str, spin: str) -> None:
+        self.price = 2.0
+        self.calcFill(LoadType[fill.upper()])
+        self.calcWash(LoadType[wash.upper()])
+        self.calcRinse(LoadType[rinse.upper()])
+        self.calcSpin(LoadType[spin.upper()])
 
-            choice = input("Choice: ").lower()
+    def calc_cost_running(self, fill: str, wash: str, rinse: str, spin: str) -> None:
+        self.price = 0.0
+        self.calcFill(LoadType[fill.upper()])
+        self.calcWash(LoadType[wash.upper()])
+        self.calcRinse(LoadType[rinse.upper()])
+        self.calcSpin(LoadType[spin.upper()])
 
-            if choice == 'f':
-                self.cycles['fill'] = self._lrh()
-            elif choice == 'w':
-                self.cycles['wash'] = self._lrh()
-            elif choice == 'r':
-                self.cycles['rinse'] = self._sd()
-            elif choice == 's':
-                self.cycles['spin'] = self._sd()
-            elif choice == 'b':
-                break
-            else:
-                print(f"{choice} is an invalid option")
 
-    def _run(self):
-        load = MyLoad(*self.cycles.values())
-        if self.money < load.price:
-            print("Not enough monies")
-            return
+class MyMainMenu(tk.Frame):
+    def __init__(self, load: MyLoad, startFunc):
+        super().__init__()
+        # self = tk.Frame(self)
+        self.startFunc = startFunc
+        self.load = load
+        self.money = MainMoney(self)
+        self.door = Door(self)
+        self.cycles = Cycles(self, self.updateCostStart)
+        self.startb = StartButton(self, self.start, self.update_cycle)
+        self.err = Error(self)
 
-    def _main(self):
-        while (1):
-            print(
-                "--------------------",
-                "Washing Washer",
-                f"Door: {self.door.ajar.name} | {self.door.locked.name}",
-                f"Money: {locale.currency(self.money, grouping=True)}",
-                "--------------------",
-                "Door: D",
-                "Cycles: C",
-                "Money: M",
-                "Run: r",
-                "Exit: E",
-                sep='\n'
-            )
+    def updateCostStart(self, cycles: list):
+        self.load.calc_cost_start(*cycles)
+        self.money.update_cost(self.load.price)
 
-            choice = input("Choice: ").lower()
-
-            if choice == 'd':
-                print("door")
-            elif choice == 'c':
-                self._cycles()
-            elif choice == 'm':
-                self._money()
-            elif choice == 'r':
-                print("Running")
-            elif choice == 'e':
-                break
-            else:
-                print(f"{choice} is an invalid option")
+    def update_cycle(self):
+        self
+        # state = self.cycles.get_state()
+        # if self.cycles.cycle_fill_drop["state"] == "normal":
+        #     self.load.calcFill(LoadType[state[0].upper()])
+        # if self.cycles.cycle_wash_drop["state"] == "normal":
+        #     self.load.calcWash(LoadType[state[1].upper()])
+        # if self.cycles.cycle_rinse_drop["state"] == "normal":
+        #     self.load.calcRinse(LoadType[state[2].upper()])
+        # if self.cycles.cycle_spin_drop["state"] == "normal":
+        #     self.load.calcSpin(LoadType[state[3].upper()])
 
     def start(self):
-        self._main()
+        self.err.update("")
+        if self.door.door_open.get() == "opened":
+            self.err.update("Door open")
+            return
+        if self.door.door_lock.get() == "unlocked":
+            self.err.update("Door unlocked")
+            return
+        if float(self.money.moneyStr.get()) < self.load.price:
+            self.err.update("Not enough money")
+            return
+
+        # self.startb.disable()
+        self.startb.switch()
+
+        self.money.update_money(self.load.price)
+        self.money.update_cost(0)
+
+        # self.door.disable()
+        self.startFunc()
+
+    def stop(self):
+        self.startb.switch()
+        self.startb.enable()
+        self.cycles.update()
+        self.door.enable()
+
+
+class MyRunningMenu(tk.Frame):
+    def __init__(self, load: MyLoad):
+        super().__init__()
+        self.load = load
+        self.money = Money(self)
+
+        self.fill = Cycle(
+            self, "Fill", load.fill.name.lower(), [
+                "light", "regular", "heavy"])
+
+        self.wash = Cycle(
+            self, "Wash", load.wash.name.lower(), [
+                "light", "regular", "heavy"])
+
+        self.rinse = Cycle(
+            self, "Rinse", load.rinse.name.lower(), [
+                "single", "double"])
+
+        self.spin = Cycle(
+            self, "Spin", load.spin.name.lower(), [
+                "single", "double"])
+
+        self.progress = Progress(self)
+
+    def fillCostRunning(self, cycles: list):
+        self.load.calc_cost_running(*cycles)
+        self.fill.update_cost(self.load.price)
+
+    def washCostRunning(self, cycles: list):
+        self.load.calc_cost_running(*cycles)
+        self.wash.update_cost(self.load.price)
+
+    def fillCostRunning(self, cycles: list):
+        self.load.calc_cost_running(*cycles)
+        self.fill.update_cost(self.load.price)
+
+    def fillCostRunning(self, cycles: list):
+        self.load.calc_cost_running(*cycles)
+        self.fill.update_cost(self.load.price)
+
+    def updateFill(self):
+        self
+
+    def updateWash(self):
+        self
+
+    def updateRinse(self):
+        self
+
+    def updateSpin(self):
+        self
+
+
+class MyWashingMachine(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.protocol("WM_DELETE_WINDOW", self.ree)
+        # self.geometry("1000x1000")
+        self.resizable(False, False)
+        self.title("Washing Machine")
+
+        self.load = MyLoad()
+        self.main = MyMainMenu(self.load, self.start_load)
+        self.main.pack()
+
+    def run(self):
+        self.mainloop()
+
+    def start_load(self):
+        self.main.pack_forget()
+        self.running = MyRunningMenu(self.load)
+        self.running.money.set(float(self.main.money.moneySBox.get()))
+        self.running.pack()
+        self.thr = threading.Thread(target=self.run_load, daemon=True)
+        self.thr.start()
+
+    def run_load(self):
+        for x in range(10):
+            time.sleep(1)
+            self.running.progress.bar.step(100/10)
+
+        self.running.destroy()
+        self.main.pack()
+        self.main.stop()
+
+    def ree(self):
+        self.destroy()
 
 
 def main():
     wm = MyWashingMachine()
-    wm.start()
+    wm.run()
     # wm.getMoney()
     # a = threading.Timer(1, print("fuck"))
     # a.start()
