@@ -163,10 +163,9 @@ class MainMoney(tk.LabelFrame):
 
 
 class StartButton(tk.LabelFrame):
-    def __init__(self, master, startFunc, updateFunc):
+    def __init__(self, master, startFunc):
         super().__init__(master, text="Start")
         self.startFunc = startFunc
-        self.updateFunc = updateFunc
         self.pack(fill=BOTH, padx=20, pady=10)
         self.grid_columnconfigure((0, 4), weight=1)
 
@@ -200,6 +199,17 @@ class StartButton(tk.LabelFrame):
         self.startButton.config(state=tk.NORMAL)
 
 
+class Button(tk.LabelFrame):
+    def __init__(self, master, updateFunc):
+        super().__init__(master, text="Update")
+        self.pack(fill=BOTH, padx=20, pady=10)
+        self.grid_columnconfigure((0, 2), weight=1)
+        self.updateFunc = updateFunc
+        self.button = tk.Button(
+            self, text="Update", command=self.updateFunc)
+        self.button.grid(row=0, column=1, padx=10, pady=5)
+
+
 class Error(tk.LabelFrame):
     def __init__(self, master):
         super().__init__(master, text="Error")
@@ -213,63 +223,6 @@ class Error(tk.LabelFrame):
         self.errorEntry.delete(0, tk.END)
         self.errorEntry.insert(0, text)
         self.errorEntry.config(state=tk.DISABLED)
-
-
-class Money(tk.LabelFrame):
-    def __init__(self, master):
-        super().__init__(master, text="Money")
-        self.pack(fill=BOTH, padx=20, pady=10)
-        self.grid_columnconfigure((0, 3), weight=1)
-
-        self.moneyLabel = tk.Label(self, text="Inserted: $")
-        self.moneyLabel.grid(row=0, column=1)
-
-        self.moneyStr = tk.StringVar(self)
-        self.moneyStr.set("0.00")
-        self.moneySBox = tk.Spinbox(self, from_=0.00, to=6.00,
-                                    format="%.2f", increment=.25, state='readonly', textvariable=self.moneyStr)
-        self.moneySBox.grid(row=0, column=2, pady=5)
-
-    def update_money(self, price: float):
-        self.moneyStr.set(
-            f"{float(self.moneyStr.get()) - price:.2f}"
-        )
-
-    def set(self, val: float):
-        self.moneyStr.set(f"{val:.2f}")
-
-
-class Cycle(tk.LabelFrame):
-    def __init__(self, master, title: str, start: str, options: list):
-        super().__init__(master, text=title)
-        self.pack(fill=BOTH, padx=20, pady=10)
-        self.grid_columnconfigure((0, 5), weight=1)
-
-        self.cycle = tk.StringVar()
-        self.cycle.set(start)
-
-        self.costLabel = tk.Label(self, text="Price: $")
-        self.costLabel.grid(row=0, column=1)
-
-        self.costEntry = tk.Entry(self, state=tk.DISABLED)
-        self.costEntry.grid(row=0, column=2, pady=5)
-
-        self.cycle_fill_drop = tk.OptionMenu(
-            self, self.cycle, *options, command=lambda func: self.update())
-        self.cycle_fill_drop.grid(row=0, column=3, padx=10, pady=5)
-
-        self.cycleButton = tk.Button(self, text="Update")
-        self.cycleButton.grid(row=0, column=4, padx=10, pady=5)
-
-    def update_cost(self, cost: float):
-        self.costEntry.config(state=tk.NORMAL)
-        self.costEntry.delete(0, tk.END)
-        self.costEntry.insert(0, f"{cost:.2f}")
-        self.costEntry.config(state=tk.DISABLED)
-
-    def disable(self):
-        self.cycle_fill_drop.config(state=tk.DISABLED)
-        self.cycleButton.config(state=tk.DISABLED)
 
 
 class Progress(tk.LabelFrame):

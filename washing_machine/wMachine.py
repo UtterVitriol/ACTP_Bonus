@@ -2,7 +2,7 @@ import time
 import locale
 import threading
 from enum import Enum
-from wMachineGui import MainMoney, Money, Door, Cycles, Cycle, StartButton, Error, Progress
+from wMachineGui import MainMoney, Door, Cycles, StartButton, Error, Progress, Button
 import tkinter as tk
 
 locale.setlocale(locale.LC_ALL, '')
@@ -17,45 +17,20 @@ class LoadType(Enum):
     DOUBLE = 5
 
 
-class WashCycle():
-    def __init__(self):
-        print("I'm circle")
-
-    def light(self):
-        return
-
-    def normal(self):
-        return
-
-    def heavy(self):
-        return
-
-
-class MyTimer():
-    def __init__(self):
-        self.length = 0
-        return
-
-    def start(self, length: int):
-        self.length = length
-        now = int(time.time())
-        cur = now
-        while cur != now + self.length:
-            cur = int(time.time())
-            time.sleep(1)
-
-    def increase(self, length: int):
-        self.length += length
-
-
 class MyLoad():
     def __init__(self):
         self.price = 2.0
+        self.addonPrice = 0
 
-        self.fill = LoadType.REGULAR
-        self.wash = LoadType.REGULAR
-        self.rinse = LoadType.SINGLE
-        self.spin = LoadType.SINGLE
+        self.fillStartType = LoadType.REGULAR
+        self.washStartType = LoadType.REGULAR
+        self.rinseStartType = LoadType.SINGLE
+        self.spinStartType = LoadType.SINGLE
+
+        self.fillHasCapped = False
+        self.washHasCapped = False
+        self.rinseHasCapped = False
+        self.spinHasCapped = False
 
         self.fillUpdated = False
         self.washUpdated = False
@@ -70,7 +45,7 @@ class MyLoad():
     def runFill(self):
         now = int(time.time())
         cur = now
-        while cur != now + self.fillTime:
+        while cur < now + self.fillTime:
             time.sleep(1)
             cur = int(time.time())
             yield cur
@@ -78,7 +53,7 @@ class MyLoad():
     def runWash(self):
         now = int(time.time())
         cur = now
-        while cur != now + self.washTime:
+        while cur < now + self.washTime:
             time.sleep(1)
             cur = int(time.time())
             yield cur
@@ -86,7 +61,7 @@ class MyLoad():
     def runRinse(self):
         now = int(time.time())
         cur = now
-        while cur != now + self.rinseTime:
+        while cur < now + self.rinseTime:
             time.sleep(1)
             cur = int(time.time())
             yield cur
@@ -94,7 +69,7 @@ class MyLoad():
     def runSpin(self):
         now = int(time.time())
         cur = now
-        while cur != now + self.spinTime:
+        while cur < now + self.spinTime:
             time.sleep(1)
             cur = int(time.time())
             yield cur
@@ -102,58 +77,64 @@ class MyLoad():
     def calcFill(self, mode: LoadType) -> None:
         self.fill = mode
         if mode == LoadType.LIGHT:
-            self.fillTime = 3
+            self.fillStartType = LoadType.LIGHT
+            self.fillTime = 3 * 60
         elif mode == LoadType.REGULAR:
-            self.fillTime = 5
+            self.fillStartType = LoadType.REGULAR
+            self.fillTime = 5 * 60
         elif mode == LoadType.HEAVY:
-            self.fillTime = 8
+            self.fillStartType = LoadType.HEAVY
+            self.fillTime = 8 * 60
             self.price += .5
 
     def calcWash(self, mode: LoadType) -> None:
         self.wash = mode
         if mode == LoadType.LIGHT:
-            self.washTime = 5
+            self.washStartType = LoadType.LIGHT
+            self.washTime = 5 * 60
         elif mode == LoadType.REGULAR:
-            self.washTime = 10
+            self.washStartType = LoadType.REGULAR
+            self.washTime = 10 * 60
         elif mode == LoadType.HEAVY:
-            self.washTime = 17
+            self.washStartType = LoadType.HEAVY
+            self.washTime = 17 * 60
             self.price += 1.5
 
     def calcRinse(self, mode: LoadType) -> None:
         self.rinse = mode
         if mode == LoadType.SINGLE:
-            self.rinseTime = 10
+            self.rinseTime = 10 * 60
         elif mode == LoadType.DOUBLE:
-            self.rinseTime = 15
+            self.rinseTime = 15 * 60
             self.price += 1.25
 
     def calcSpin(self, mode: LoadType) -> None:
         self.spin = mode
         if mode == LoadType.SINGLE:
-            self.spinTime = 5
+            self.rinseStartType = LoadType.SINGLE
+            self.spinTime = 5 * 60
         elif mode == LoadType.DOUBLE:
-            self.spinTime = 11
+            self.rinseStartType = LoadType.DOUBLE
+            self.spinTime = 11 * 60
             self.price += .75
 
-    # def reset_time(self) -> None:
-    #     self.fillTime = 5
-    #     self.washTime = 10
-    #     self.rinseTime = 10
-    #     self.spinTime = 5
-
-    def calc_cost_start(self, fill: str, wash: str, rinse: str, spin: str) -> None:
+    def calcCostStart(self, fill: str, wash: str, rinse: str, spin: str) -> None:
         self.price = 2.0
         self.calcFill(LoadType[fill.upper()])
         self.calcWash(LoadType[wash.upper()])
         self.calcRinse(LoadType[rinse.upper()])
         self.calcSpin(LoadType[spin.upper()])
 
-    def calc_cost_running(self, fill: str, wash: str, rinse: str, spin: str) -> None:
-        self.price = 0.0
-        self.calcFill(LoadType[fill.upper()])
-        self.calcWash(LoadType[wash.upper()])
-        self.calcRinse(LoadType[rinse.upper()])
-        self.calcSpin(LoadType[spin.upper()])
+    def calcCostRunning(self, fill: str, wash: str, rinse: str, spin: str) -> None:
+        self.addonPrice = 0
+        if fill == "heavy" and not self.fillHasCapped:
+            self.addonPrice += .5
+        if wash == "heavy" and not self.washHasCapped:
+            self.addonPrice += 1.5
+        if rinse == "double" and not self.rinseHasCapped:
+            self.addonPrice += 1.25
+        if spin == "double" and not self.spinHasCapped:
+            self.addonPrice += .75
 
 
 class MyMainMenu(tk.Frame):
@@ -165,24 +146,12 @@ class MyMainMenu(tk.Frame):
         self.money = MainMoney(self)
         self.door = Door(self)
         self.cycles = Cycles(self, self.updateCostStart)
-        self.startb = StartButton(self, self.start, self.update_cycle)
+        self.startb = StartButton(self, self.start)
         self.err = Error(self)
 
     def updateCostStart(self, cycles: list):
-        self.load.calc_cost_start(*cycles)
+        self.load.calcCostStart(*cycles)
         self.money.update_cost(self.load.price)
-
-    def update_cycle(self):
-        self
-        # state = self.cycles.get_state()
-        # if self.cycles.cycle_fill_drop["state"] == "normal":
-        #     self.load.calcFill(LoadType[state[0].upper()])
-        # if self.cycles.cycle_wash_drop["state"] == "normal":
-        #     self.load.calcWash(LoadType[state[1].upper()])
-        # if self.cycles.cycle_rinse_drop["state"] == "normal":
-        #     self.load.calcRinse(LoadType[state[2].upper()])
-        # if self.cycles.cycle_spin_drop["state"] == "normal":
-        #     self.load.calcSpin(LoadType[state[3].upper()])
 
     def start(self):
         self.err.update("")
@@ -195,6 +164,15 @@ class MyMainMenu(tk.Frame):
         if float(self.money.moneyStr.get()) < self.load.price:
             self.err.update("Not enough money")
             return
+
+        if self.load.fillStartType == LoadType.HEAVY:
+            self.load.fillHasCapped = True
+        if self.load.washStartType == LoadType.HEAVY:
+            self.load.washHasCapped = True
+        if self.load.rinseStartType == LoadType.DOUBLE:
+            self.load.rinseHasCapped = True
+        if self.load.spinStartType == LoadType.DOUBLE:
+            self.load.spinHasCapped = True
 
         self.money.update_money(0.0)
         self.money.update_cost(0)
@@ -211,56 +189,53 @@ class MyRunningMenu(tk.Frame):
     def __init__(self, load: MyLoad):
         super().__init__()
         self.load = load
-        self.money = Money(self)
-
-        self.fill = Cycle(
-            self, "Fill", load.fill.name.lower(), [
-                "light", "regular", "heavy"])
-
-        self.wash = Cycle(
-            self, "Wash", load.wash.name.lower(), [
-                "light", "regular", "heavy"])
-
-        self.rinse = Cycle(
-            self, "Rinse", load.rinse.name.lower(), [
-                "single", "double"])
-
-        self.spin = Cycle(
-            self, "Spin", load.spin.name.lower(), [
-                "single", "double"])
-
-        # self.progress = Progress(self)
-
-    def fillCostRunning(self, cycles: list):
-        self.load.calc_cost_running(*cycles)
-        self.fill.update_cost(self.load.price)
-
-    def washCostRunning(self, cycles: list):
-        self.load.calc_cost_running(*cycles)
-        self.wash.update_cost(self.load.price)
-
-    def fillCostRunning(self, cycles: list):
-        self.load.calc_cost_running(*cycles)
-        self.fill.update_cost(self.load.price)
-
-    def fillCostRunning(self, cycles: list):
-        self.load.calc_cost_running(*cycles)
-        self.fill.update_cost(self.load.price)
+        self.money = MainMoney(self)
+        self.cycles = Cycles(self, self.updateCostStart)
+        self.button = Button(self, self.changeCycle)
+        self.err = Error(self)
 
     def addProgress(self, title):
         self.progress = Progress(self, title)
 
-    def updateFill(self):
-        self
+    def updateCostStart(self, cycles: list):
+        self.load.calcCostRunning(*cycles)
+        self.money.update_cost(self.load.addonPrice)
 
-    def updateWash(self):
-        self
+    def changeCycle(self):
+        self.err.update("")
+        money = float(self.money.moneyStr.get())
+        if money < self.load.addonPrice:
+            self.err.update("Not enough money")
+            return
 
-    def updateRinse(self):
-        self
+        state = self.cycles.get_state()
 
-    def updateSpin(self):
-        self
+        fill = LoadType[state[0].upper()]
+        if fill == LoadType.HEAVY and not self.load.fillHasCapped:
+            self.load.fillHasCapped = True
+        self.load.fillStartType = fill
+
+        wash = LoadType[state[1].upper()]
+        if wash == LoadType.HEAVY and not self.load.washHasCapped:
+            self.load.washHasCapped = True
+        self.load.washStartType = wash
+
+        rinse = LoadType[state[2].upper()]
+        if rinse == LoadType.DOUBLE and not self.load.rinseHasCapped:
+            self.load.rinseHasCapped = True
+        self.load.rinseStartType = rinse
+
+        spin = LoadType[state[3].upper()]
+        if spin == LoadType.DOUBLE and not self.load.spinHasCapped:
+            self.load.spinHasCapped = True
+        self.load.spinStartType = spin
+
+        print(self.load.fillTime)
+        self.load.calcCostStart(*state)
+        print(self.load.fillTime)
+
+        self.money.update_money(money - self.load.addonPrice)
+        self.money.update_cost(0)
 
 
 class MyWashingMachine(tk.Tk):
@@ -287,32 +262,36 @@ class MyWashingMachine(tk.Tk):
 
     def run_load(self):
         self.running.addProgress("Fill")
-        for minute in self.load.runFill():
-            self.running.progress.bar.step(100/self.load.fillTime)
+        for second in self.load.runFill():
+            self.running.progress.bar.config(max=self.load.fillTime)
+            self.running.progress.bar.step(1)
         self.running.progress.destroy()
 
-        self.running.fill.disable()
+        self.running.cycles.disable_cycle(0)
 
         self.running.addProgress("Wash")
-        for minute in self.load.runWash():
-            self.running.progress.bar.step(100/self.load.washTime)
+        for second in self.load.runWash():
+            self.running.progress.bar.config(max=self.load.washTime)
+            self.running.progress.bar.step(1)
         self.running.progress.destroy()
 
-        self.running.wash.disable()
+        self.running.cycles.disable_cycle(1)
 
         self.running.addProgress("Rinse")
-        for minute in self.load.runRinse():
-            self.running.progress.bar.step(100/self.load.washTime)
+        for second in self.load.runRinse():
+            self.running.progress.bar.config(max=self.load.rinseTime)
+            self.running.progress.bar.step(1)
         self.running.progress.destroy()
 
-        self.running.rinse.disable()
+        self.running.cycles.disable_cycle(2)
 
         self.running.addProgress("Spin")
-        for minute in self.load.runSpin():
-            self.running.progress.bar.step(100/self.load.spinTime)
+        for second in self.load.runSpin():
+            self.running.progress.bar.config(max=self.load.spinTime)
+            self.running.progress.bar.step(1)
         self.running.progress.destroy()
 
-        self.running.spin.disable()
+        self.running.cycles.disable_cycle(3)
 
         self.running.destroy()
         self.main.pack()
